@@ -30,6 +30,7 @@ import random
 from mathutils import Vector
 
 class RandomShapeProps(PropertyGroup):
+    use_selected_object : BoolProperty(name = "Use Selected Object", description = "Should shapes be generated on the currently selected object", default = False)
     vary_height : BoolProperty(name = "Vary Layer Height", description = "Should all objects be the same height", default = True)
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "Should all objects be Cubes", default = True)
     num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1)
@@ -54,6 +55,7 @@ def PickYAxis():
 def GenerateShapes():
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
+    use_selected = rand_shape_props.use_selected_object
     layers = rand_shape_props.num_of_layers
     cubes = rand_shape_props.make_cubes
     vary_layer_height = rand_shape_props.vary_height
@@ -123,7 +125,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         scene = context.scene
 
         col1 = layout.column(align=False)
-
+        col1.prop(scene.rand_shape_prop, "use_selected_object")
         col1.prop(scene.rand_shape_prop, "num_of_layers")
         col1.prop(scene.rand_shape_prop, "num_of_cuts")
 
