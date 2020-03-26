@@ -34,7 +34,9 @@ class RandomShapeProps(PropertyGroup):
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "Should all objects be Cubes", default = True)
     num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1)
     num_of_cuts : IntProperty(name = "Number of Cuts", description = "How cuts should each layer have", default = 1)
-    solidify_thickness : FloatProperty(name  = "Solidify Thickness", description = "How thick each layer should be", default = 0.1)
+    solidify_thickness : FloatProperty(name  = "Thickness", description = "How thick each layer should be", default = 0.1)
+    solidify_thickness_min : FloatProperty(name  = "Min", description = "Minimum Solidify Thickness", default = 0.1)
+    solidify_thickness_max : FloatProperty(name  = "Max", description = "Maximum Solidify Thickness", default = 0.9)
 
 def RandomNum():
     return random.uniform(-.9,.9)
@@ -57,10 +59,12 @@ def GenerateShapes():
     vary_layer_height = rand_shape_props.vary_height
     number_of_cuts = rand_shape_props.num_of_cuts
     solidify_mod_thickness = rand_shape_props.solidify_thickness
+    solidify_thickness_min = rand_shape_props.solidify_thickness_min
+    solidify_thickness_max = rand_shape_props.solidify_thickness_max
 
     #create random cube layers 
     for i in range(layers):
-        bpy.ops.mesh.primitive_plane_add(enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
+        bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
         bpy.ops.object.shade_smooth()
         bpy.ops.object.editmode_toggle()
 
@@ -85,12 +89,13 @@ def GenerateShapes():
         for obj in bpy.context.selected_objects:
             solidify_mod = obj.modifiers.new(name="Solidify", type='SOLIDIFY')
             if vary_layer_height:
-                solidify_mod.thickness = random.uniform(-.3,-.1)
+                solidify_mod.thickness = random.uniform(-solidify_thickness_max, -solidify_thickness_min)
             else:
                 solidify_mod.thickness = solidify_mod_thickness
             bevel_mod = obj.modifiers.new(name="Bevel", type='BEVEL')
             bevel_mod.width = 0.005
             bevel_mod.segments = 2
+            bevel_mod.limit_method = 'ANGLE'
             subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
             subd_mod.levels = 2
 
@@ -117,20 +122,33 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
 
-        col = layout.column(align=False)
+        col1 = layout.column(align=False)
 
-        col.prop(scene.rand_shape_prop, "num_of_layers")
-        col.prop(scene.rand_shape_prop, "num_of_cuts")
+        col1.prop(scene.rand_shape_prop, "num_of_layers")
+        col1.prop(scene.rand_shape_prop, "num_of_cuts")
 
-        col.prop(scene.rand_shape_prop, "vary_height")
+        col1.prop(scene.rand_shape_prop, "vary_height")
         vary_bool = scene.rand_shape_prop.vary_height
+        layout.label(text="Uniform Thickness")
+        col2 = layout.column(align=False)
+        col2.prop(scene.rand_shape_prop, "solidify_thickness")
+        layout.label(text="Random Thickness")
+        col3 = layout.column(align=False)
+        row1 = col3.row(align=True)
+        row1.prop(scene.rand_shape_prop, "solidify_thickness_min")
+        row1.prop(scene.rand_shape_prop, "solidify_thickness_max")
         if not vary_bool:
-            col.prop(scene.rand_shape_prop, "solidify_thickness")
+            col2.enabled = True
+            col3.enabled = False
+        else:
+            col2.enabled = False
+            col3.enabled = True
         
-        col.prop(scene.rand_shape_prop, "make_cubes")
+        col4 = layout.column(align=False)
+        col4.prop(scene.rand_shape_prop, "make_cubes")
 
-        col.separator()
-        col.operator('view3d.random_shape', text="GenerateRandomShapes!")
+        col4.separator()
+        col4.operator('view3d.random_shape', text="GenerateRandomShapes!")
 
 #blender addon reg, unreg
 def register():
