@@ -30,9 +30,10 @@ import random
 from mathutils import Vector
 
 class RandomShapeProps(PropertyGroup):
+    use_generated_object : BoolProperty(name = "Generate Object", description = "Should shapes be generated on a plane", default = False)
     vary_height : BoolProperty(name = "Vary Layer Height", description = "Should all objects be the same height", default = True)
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "Should all objects be Cubes", default = True)
-    num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1)
+    num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1, min = 1)
     num_of_cuts : IntProperty(name = "Number of Cuts", description = "How cuts should each layer have", default = 1)
     solidify_thickness : FloatProperty(name  = "Thickness", description = "How thick each layer should be", default = 0.1)
     solidify_thickness_min : FloatProperty(name  = "Min", description = "Minimum Solidify Thickness", default = 0.1)
@@ -41,8 +42,8 @@ class RandomShapeProps(PropertyGroup):
 def RandomNum():
     return random.uniform(-.9,.9)
 
-def RandVector():
-    return (RandomNum(),RandomNum(),RandomNum())
+def RandVector(object_center):
+    return (RandomNum() + object_center[0],RandomNum() + object_center[1],RandomNum() + object_center[2])
 
 def PickYAxis():
     num = random.randint(0,1)
@@ -54,6 +55,7 @@ def PickYAxis():
 def GenerateShapes():
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
+    generate_object = rand_shape_props.use_generated_object
     layers = rand_shape_props.num_of_layers
     cubes = rand_shape_props.make_cubes
     vary_layer_height = rand_shape_props.vary_height
@@ -64,7 +66,14 @@ def GenerateShapes():
 
     #create random cube layers 
     for i in range(layers):
-        bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
+        #creates plane otherwise use current selection
+        if generate_object:
+            bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
+        
+        #get object location to add to bisect vector for objects not at world center
+        obj = bpy.context.active_object
+        loc = obj.location
+
         bpy.ops.object.shade_smooth()
         bpy.ops.object.editmode_toggle()
 
@@ -72,20 +81,23 @@ def GenerateShapes():
             bpy.ops.mesh.select_all(action='SELECT')
             if cubes: #creates cuts only on x or y axis
                 if PickYAxis():
+
                     #y axis
-                    bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
+                    bpy.ops.mesh.bisect(plane_co=(RandomNum() + loc[0],loc[1],0), plane_no=(1, 0, 0))
+                    #bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
                 else:
                     #x axis
-                    bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
+                    bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum() + loc[1],0), plane_no=(0, 1, 0))
+                    #bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
             else: #creates random cuts
-                bpy.ops.mesh.bisect(plane_co=RandVector(), plane_no=RandVector())
+                bpy.ops.mesh.bisect(plane_co=RandVector(loc), plane_no=RandVector((0,0,0)))
             bpy.ops.mesh.edge_split()
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
         bpy.ops.mesh.separate(type='LOOSE')
         bpy.ops.object.editmode_toggle()
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
-        #bpy.ops.object.select_all(action='SELECT')
+
         for obj in bpy.context.selected_objects:
             solidify_mod = obj.modifiers.new(name="Solidify", type='SOLIDIFY')
             if vary_layer_height:
@@ -123,7 +135,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         scene = context.scene
 
         col1 = layout.column(align=False)
-
+        col1.prop(scene.rand_shape_prop, "use_generated_object")
         col1.prop(scene.rand_shape_prop, "num_of_layers")
         col1.prop(scene.rand_shape_prop, "num_of_cuts")
 
