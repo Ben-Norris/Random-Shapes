@@ -38,6 +38,8 @@ class RandomShapeProps(PropertyGroup):
     solidify_thickness : FloatProperty(name  = "Thickness", description = "How thick each layer should be", default = 0.1)
     solidify_thickness_min : FloatProperty(name  = "Min", description = "Minimum Solidify Thickness", default = 0.1)
     solidify_thickness_max : FloatProperty(name  = "Max", description = "Maximum Solidify Thickness", default = 0.9)
+    bevel_width_float : FloatProperty(name  = "Bevel Width", description = "Bevel Width", default = 0.002)
+    bevel_seg_int : IntProperty(name = "Bevel Segments", description = "How many Bevel Segments", default = 1, min = 1)
 
 def RandomNum():
     return random.uniform(-.9,.9)
@@ -63,6 +65,8 @@ def GenerateShapes():
     solidify_mod_thickness = rand_shape_props.solidify_thickness
     solidify_thickness_min = rand_shape_props.solidify_thickness_min
     solidify_thickness_max = rand_shape_props.solidify_thickness_max
+    bev_width = rand_shape_props.bevel_width_float
+    bevel_seg = rand_shape_props.bevel_seg_int
 
     #create random cube layers 
     for i in range(layers):
@@ -70,7 +74,8 @@ def GenerateShapes():
         if generate_object:
             bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
         
-        #get object location to add to bisect vector for objects not at world center
+        #get object location to add to bisect vector for 
+        # objects not at world center
         obj = bpy.context.active_object
         loc = obj.location
 
@@ -105,8 +110,8 @@ def GenerateShapes():
             else:
                 solidify_mod.thickness = solidify_mod_thickness
             bevel_mod = obj.modifiers.new(name="Bevel", type='BEVEL')
-            bevel_mod.width = 0.005
-            bevel_mod.segments = 2
+            bevel_mod.width = bev_width
+            bevel_mod.segments = bevel_seg
             bevel_mod.limit_method = 'ANGLE'
             subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
             subd_mod.levels = 2
@@ -155,8 +160,10 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         else:
             col2.enabled = False
             col3.enabled = True
-        
+    
         col4 = layout.column(align=False)
+        col4.prop(scene.rand_shape_prop, "bevel_width_float")
+        col4.prop(scene.rand_shape_prop, "bevel_seg_int")
         col4.prop(scene.rand_shape_prop, "make_cubes")
 
         col4.separator()
