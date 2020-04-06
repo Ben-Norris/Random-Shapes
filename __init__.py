@@ -30,10 +30,8 @@ import random
 from mathutils import Vector
 
 class RandomShapeProps(PropertyGroup):
-    #use_generated_object : BoolProperty(name = "Generate Object", description = "If checked: Objects are generated on a plane. \nIf unchecked: Objects are generated on currently selected object", default = False)
     vary_height : BoolProperty(name = "Vary Layer Height", description = "If checked: Use uniform thickness and all objects are the same height. \nIf unchecked: Random thickness is used between min and max values.", default = True)
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "If checked: Only squares and rectangles are created. \nIf unchecked: Random ngons are created", default = True)
-    #num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1, min = 1)
     cuts : IntProperty(name = "Number of Cuts", description = "How cuts should be made", default = 1)
     rec_cuts : IntProperty(name = "Number of Recursive Cuts", description = "How recursive cuts should be made.\nNOTE: This can take a long time with higher values. Be careful.", default = 0)
     use_solidify_bool : BoolProperty(name = "Use Solidify", description = "Should a Solidify Modifier be added", default = False)
@@ -62,8 +60,6 @@ def PickYAxis():
 def GenerateShapes():
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
-    #generate_object = rand_shape_props.use_generated_object
-    #layers = rand_shape_props.num_of_layers
     cubes = rand_shape_props.make_cubes
     vary_layer_height = rand_shape_props.vary_height
     number_of_cuts = rand_shape_props.cuts
@@ -78,9 +74,6 @@ def GenerateShapes():
     use_subd = rand_shape_props.use_subd_bool
     sub_d_lev = rand_shape_props.sub_d_levels
 
-    #REMOVED LAYERS
-    #create random cube layers 
-    #for i in range(layers):
     #creates plane otherwise use current selection
     if bpy.context.active_object == None:
         bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
@@ -122,7 +115,10 @@ def GenerateShapes():
             bpy.ops.mesh.separate(type='LOOSE')
             bpy.ops.object.editmode_toggle()
             bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+            #add all created objects to new list
             new_objects.extend(bpy.context.selected_objects)
+        
+        #clear list used for this loop and copy in newly created objects
         objects_to_cut.clear()
         objects_to_cut = new_objects.copy()
         new_objects.clear()
@@ -167,54 +163,53 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         layout.label(text="Cut Settings:")
-        col1 = layout.column(align=False)
-        #col1.prop(scene.rand_shape_prop, "use_generated_object")
-        #col1.prop(scene.rand_shape_prop, "num_of_layers")
-        col1.prop(scene.rand_shape_prop, "cuts")
-        col1.prop(scene.rand_shape_prop, "rec_cuts")
-        col1.prop(scene.rand_shape_prop, "make_cubes")
+        box1 = layout.box()
+        box1_col1 = box1.column(align=False)
+        box1_col1.prop(scene.rand_shape_prop, "cuts")
+        box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
+        box1_col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
-        box1 = layout.box()
-        box1_col = box1.column(align=False)
-        box1_col.prop(scene.rand_shape_prop, "use_solidify_bool")
-        use_solid = scene.rand_shape_prop.use_solidify_bool
-        if use_solid:
-            box1_col.separator()
-            box1.label(text="Uniform Thickness")
-            box1_col2 = box1.column(align=False)
-            box1.label(text="Random Thickness")
-            box1_col3 = box1.column(align=False)
-            box1_col.prop(scene.rand_shape_prop, "vary_height")
-            vary_bool = scene.rand_shape_prop.vary_height
-            
-            box1_col2.prop(scene.rand_shape_prop, "solidify_thickness")
-            box1_row1 = box1_col3.row(align=True)
-            box1_row1.prop(scene.rand_shape_prop, "solidify_thickness_min")
-            box1_row1.prop(scene.rand_shape_prop, "solidify_thickness_max")
-            if not vary_bool:
-                box1_col2.enabled = True
-                box1_col3.enabled = False
-            else:
-                box1_col2.enabled = False
-                box1_col3.enabled = True
-        
         box2 = layout.box()
         box2_col = box2.column(align=False)
-        box2_col.prop(scene.rand_shape_prop, "use_bevel_bool")
-        use_bevel = scene.rand_shape_prop.use_bevel_bool
-        if use_bevel:
-            box2_col1 = box2.column(align=False)
-            box2_col1.prop(scene.rand_shape_prop, "bevel_width_float")
-            box2_col1.prop(scene.rand_shape_prop, "bevel_seg_int")
-
+        box2_col.prop(scene.rand_shape_prop, "use_solidify_bool")
+        use_solid = scene.rand_shape_prop.use_solidify_bool
+        if use_solid:
+            box2_col.separator()
+            box2.label(text="Uniform Thickness")
+            box2_col2 = box2.column(align=False)
+            box2.label(text="Random Thickness")
+            box2_col3 = box2.column(align=False)
+            box2_col.prop(scene.rand_shape_prop, "vary_height")
+            vary_bool = scene.rand_shape_prop.vary_height
+            
+            box2_col2.prop(scene.rand_shape_prop, "solidify_thickness")
+            box2_row1 = box2_col3.row(align=True)
+            box2_row1.prop(scene.rand_shape_prop, "solidify_thickness_min")
+            box2_row1.prop(scene.rand_shape_prop, "solidify_thickness_max")
+            if not vary_bool:
+                box2_col2.enabled = True
+                box2_col3.enabled = False
+            else:
+                box2_col2.enabled = False
+                box2_col3.enabled = True
+        
         box3 = layout.box()
         box3_col = box3.column(align=False)
-        box3_col.prop(scene.rand_shape_prop, "use_subd_bool")
+        box3_col.prop(scene.rand_shape_prop, "use_bevel_bool")
+        use_bevel = scene.rand_shape_prop.use_bevel_bool
+        if use_bevel:
+            box3_col1 = box3.column(align=False)
+            box3_col1.prop(scene.rand_shape_prop, "bevel_width_float")
+            box3_col1.prop(scene.rand_shape_prop, "bevel_seg_int")
+
+        box4 = layout.box()
+        box4_col = box4.column(align=False)
+        box4_col.prop(scene.rand_shape_prop, "use_subd_bool")
         use_sub = scene.rand_shape_prop.use_subd_bool
         if use_sub:
-            box3_col1 = box3.column(align=False)
-            box3_col1.prop(scene.rand_shape_prop, "sub_d_levels")
+            box4_col1 = box4.column(align=False)
+            box4_col1.prop(scene.rand_shape_prop, "sub_d_levels")
 
         col2 = layout.column(align=False)
         col2.separator()
