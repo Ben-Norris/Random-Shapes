@@ -34,7 +34,8 @@ class RandomShapeProps(PropertyGroup):
     vary_height : BoolProperty(name = "Vary Layer Height", description = "If checked: Use uniform thickness and all objects are the same height. \nIf unchecked: Random thickness is used between min and max values.", default = True)
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "If checked: Only squares and rectangles are created. \nIf unchecked: Random ngons are created", default = True)
     num_of_layers : IntProperty(name = "Layers", description = "How many layers should be generated", default = 1, min = 1)
-    num_of_cuts : IntProperty(name = "Number of Cuts", description = "How cuts should be made", default = 1)
+    cuts : IntProperty(name = "Number of Cuts", description = "How cuts should be made", default = 1)
+    rec_cuts : IntProperty(name = "Number of Recursive Cuts", description = "How recursive cuts should be made", default = 0)
     use_solidify_bool : BoolProperty(name = "Use Solidify", description = "Should a Solidify Modifier be added", default = False)
     solidify_thickness : FloatProperty(name  = "Thickness", description = "Solidify Modifier Thickness", default = 0.1)
     solidify_thickness_min : FloatProperty(name  = "Min", description = "Minimum Solidify Thickness", default = 0.1)
@@ -65,7 +66,8 @@ def GenerateShapes():
     layers = rand_shape_props.num_of_layers
     cubes = rand_shape_props.make_cubes
     vary_layer_height = rand_shape_props.vary_height
-    number_of_cuts = rand_shape_props.num_of_cuts
+    number_of_cuts = rand_shape_props.cuts
+    num_of_rec = rand_shape_props.rec_cuts
     use_solidify = rand_shape_props.use_solidify_bool
     solidify_mod_thickness = rand_shape_props.solidify_thickness
     solidify_thickness_min = rand_shape_props.solidify_thickness_min
@@ -79,20 +81,21 @@ def GenerateShapes():
     #create random cube layers 
     for i in range(layers):
         #creates plane otherwise use current selection
-        if generate_object:
+        if generate_object or bpy.context.active_object == None:
             bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, i * -solidify_mod_thickness))
         
         #get object location to add to bisect vector for 
         # objects not at world center
         obj = bpy.context.active_object
-        loc = obj.location
-
+    
         objects_to_cut = []
         new_objects = []
         objects_to_cut.append(obj)
 
-        for r in range(5):
+        #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object
+        for r in range(num_of_rec + 1):
             for ob in objects_to_cut:
+                loc = ob.location
                 bpy.ops.object.select_all(action='DESELECT')
                 bpy.data.objects[ob.name].select_set(True)
 
@@ -124,7 +127,7 @@ def GenerateShapes():
             new_objects.clear()
 
         if use_bevel or use_subd or use_solidify:
-            for obj in bpy.context.selected_objects:
+            for obj in objects_to_cut:
                 if use_solidify:
                     solidify_mod = obj.modifiers.new(name="Solidify", type='SOLIDIFY')
                     if vary_layer_height:
@@ -166,7 +169,8 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         col1 = layout.column(align=False)
         col1.prop(scene.rand_shape_prop, "use_generated_object")
         col1.prop(scene.rand_shape_prop, "num_of_layers")
-        col1.prop(scene.rand_shape_prop, "num_of_cuts")
+        col1.prop(scene.rand_shape_prop, "cuts")
+        col1.prop(scene.rand_shape_prop, "rec_cuts")
         col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
