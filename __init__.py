@@ -87,29 +87,41 @@ def GenerateShapes():
         obj = bpy.context.active_object
         loc = obj.location
 
-        bpy.ops.object.shade_smooth()
-        bpy.ops.object.editmode_toggle()
+        objects_to_cut = []
+        new_objects = []
+        objects_to_cut.append(obj)
 
-        for i in range(number_of_cuts):
-            bpy.ops.mesh.select_all(action='SELECT')
-            if cubes: #creates cuts only on x or y axis
-                if PickYAxis():
+        for r in range(5):
+            for ob in objects_to_cut:
+                bpy.ops.object.select_all(action='DESELECT')
+                bpy.data.objects[ob.name].select_set(True)
 
-                    #y axis
-                    bpy.ops.mesh.bisect(plane_co=(RandomNum() + loc[0],loc[1],0), plane_no=(1, 0, 0))
-                    #bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
-                else:
-                    #x axis
-                    bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum() + loc[1],0), plane_no=(0, 1, 0))
-                    #bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
-            else: #creates random cuts
-                bpy.ops.mesh.bisect(plane_co=RandVector(loc), plane_no=RandVector((0,0,0)))
-            bpy.ops.mesh.edge_split()
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
-        bpy.ops.mesh.separate(type='LOOSE')
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+                bpy.ops.object.shade_smooth()
+                bpy.ops.object.editmode_toggle()
+
+                for i in range(number_of_cuts):
+                    bpy.ops.mesh.select_all(action='SELECT')
+                    if cubes: #creates cuts only on x or y axis
+                        if PickYAxis():
+                            #y axis
+                            bpy.ops.mesh.bisect(plane_co=(RandomNum() + loc[0],loc[1],0), plane_no=(1, 0, 0))
+                            #bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
+                        else:
+                            #x axis
+                            bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum() + loc[1],0), plane_no=(0, 1, 0))
+                            #bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
+                    else: #creates random cuts
+                        bpy.ops.mesh.bisect(plane_co=RandVector(loc), plane_no=RandVector((0,0,0)))
+                    bpy.ops.mesh.edge_split()
+                bpy.ops.mesh.select_all(action='DESELECT')
+                bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
+                bpy.ops.mesh.separate(type='LOOSE')
+                bpy.ops.object.editmode_toggle()
+                bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
+                new_objects.extend(bpy.context.selected_objects)
+            objects_to_cut.clear()
+            objects_to_cut = new_objects.copy()
+            new_objects.clear()
 
         if use_bevel or use_subd or use_solidify:
             for obj in bpy.context.selected_objects:
