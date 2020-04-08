@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Ben Norris",
     "description" : "Generate Random Shapes",
     "blender" : (2, 80, 0),
-    "version" : (0, 0, 1),
+    "version" : (1, 0, 0),
     "location" : "",
     "warning" : "",
     "category" : "Generic"
@@ -28,6 +28,7 @@ from bpy.types import (Panel, Operator, PropertyGroup)
 import bmesh
 import random
 from mathutils import Vector
+
 
 class RandomShapeProps(PropertyGroup):
     vary_height : BoolProperty(name = "Vary Layer Height", description = "If checked: Use uniform thickness and all objects are the same height. \nIf unchecked: Random thickness is used between min and max values.", default = True)
