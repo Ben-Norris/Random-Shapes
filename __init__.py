@@ -44,11 +44,11 @@ class RandomShapeProps(PropertyGroup):
     use_subd_bool : BoolProperty(name = "Use Subdivision Mod", description = "Should A Subdivision Surface Modifier be added", default = False)
     sub_d_levels: IntProperty(name = "SubD Levels", description = "How many Subdivision Surface Levels", default = 1, min = 1)
 
-def RandomNum():
-    return random.uniform(-.9,.9)
+def RandomNum(dim):
+    return random.uniform(-dim,dim)
 
-def RandVector(object_center):
-    return (RandomNum() + object_center[0],RandomNum() + object_center[1],RandomNum() + object_center[2])
+def RandVector(object_center, dim):
+    return (RandomNum(dim[0]) + object_center[0],RandomNum(dim[1]) + object_center[1],RandomNum(dim[2]) + object_center[2])
 
 def PickYAxis():
     num = random.randint(0,1)
@@ -90,9 +90,15 @@ def GenerateShapes():
     for r in range(num_of_rec + 1):
         for ob in objects_to_cut:
             loc = ob.location
+            #get dimension - 10 percent to cut each piece
+            #used in RandomNum and RandVector to give random cut values within dimensions of current object
+            dim = []
+            for value in ob.dimensions:
+                tmp = (value / 2) - ((value / 2) * .1)
+                dim.append(tmp)
+            
             bpy.ops.object.select_all(action='DESELECT')
             bpy.data.objects[ob.name].select_set(True)
-
             bpy.ops.object.shade_smooth()
             bpy.ops.object.editmode_toggle()
 
@@ -101,14 +107,14 @@ def GenerateShapes():
                 if cubes: #creates cuts only on x or y axis
                     if PickYAxis():
                         #y axis
-                        bpy.ops.mesh.bisect(plane_co=(RandomNum() + loc[0],loc[1],0), plane_no=(1, 0, 0))
+                        bpy.ops.mesh.bisect(plane_co=(RandomNum(dim[0]) + loc[0],loc[1],0), plane_no=(1, 0, 0))
                         #bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
                     else:
                         #x axis
-                        bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum() + loc[1],0), plane_no=(0, 1, 0))
+                        bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum(dim[1]) + loc[1],0), plane_no=(0, 1, 0))
                         #bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
                 else: #creates random cuts
-                    bpy.ops.mesh.bisect(plane_co=RandVector(loc), plane_no=RandVector((0,0,0)))
+                    bpy.ops.mesh.bisect(plane_co=RandVector(loc,dim), plane_no=RandVector((0,0,0), dim))
                 bpy.ops.mesh.edge_split()
             bpy.ops.mesh.select_all(action='DESELECT')
             bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
@@ -123,6 +129,7 @@ def GenerateShapes():
         objects_to_cut = new_objects.copy()
         new_objects.clear()
 
+    #finishing settings
     if use_bevel or use_subd or use_solidify:
         for obj in objects_to_cut:
             if use_solidify:
