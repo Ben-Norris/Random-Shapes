@@ -35,6 +35,7 @@ class RandomShapeProps(PropertyGroup):
     make_cubes : BoolProperty(name = "Make Only Cubes", description = "If checked: Only squares and rectangles are created. \nIf unchecked: Random ngons are created", default = True)
     cuts : IntProperty(name = "Number of Cuts", description = "How cuts should be made", default = 1)
     rec_cuts : IntProperty(name = "Number of Recursive Cuts", description = "How recursive cuts should be made.\nNOTE: This can take a long time with higher values. Be careful.", default = 0)
+    rec_chance : IntProperty(name = "Chance of Recursive Cuts", description = "Percent chance of recursive cuts on each piece", default = 0, min = 0, max = 100)
     use_solidify_bool : BoolProperty(name = "Use Solidify", description = "Should a Solidify Modifier be added", default = False)
     solidify_thickness : FloatProperty(name  = "Thickness", description = "Solidify Modifier Thickness", default = 0.1)
     solidify_thickness_min : FloatProperty(name  = "Min", description = "Minimum Solidify Thickness", default = 0.1)
@@ -65,6 +66,7 @@ def GenerateShapes():
     vary_layer_height = rand_shape_props.vary_height
     number_of_cuts = rand_shape_props.cuts
     num_of_rec = rand_shape_props.rec_cuts
+    chance_of_rec = rand_shape_props.rec_chance
     use_solidify = rand_shape_props.use_solidify_bool
     solidify_mod_thickness = rand_shape_props.solidify_thickness
     solidify_thickness_min = rand_shape_props.solidify_thickness_min
@@ -87,9 +89,16 @@ def GenerateShapes():
     new_objects = []
     objects_to_cut.append(obj)
 
-    #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object
+    #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object atleast once
     for r in range(num_of_rec + 1):
+        print(r)
         for ob in objects_to_cut:
+            if chance_of_rec is not 0 and r > 0: 
+                num = random.randint(0, 100)
+                if num in range(0, chance_of_rec):
+                    print("in range")
+                else:
+                    print('out of range')
             loc = ob.location
             #get dimension - 10 percent to cut each piece
             #used in RandomNum and RandVector to give random cut values within dimensions of current object
@@ -148,6 +157,8 @@ def GenerateShapes():
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
+    
+
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.random_shape"
@@ -175,6 +186,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1 = box1.column(align=False)
         box1_col1.prop(scene.rand_shape_prop, "cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
+        box1_col1.prop(scene.rand_shape_prop, "rec_chance")
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
