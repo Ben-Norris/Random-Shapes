@@ -190,7 +190,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1 = box1.column(align=False)
         box1_col1.prop(scene.rand_shape_prop, "cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
-        box1_col1.prop(scene.rand_shape_prop, "rec_chance")
+        box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
