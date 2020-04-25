@@ -61,7 +61,7 @@ def PickYAxis():
     else:
         return False
 
-def GenerateShapes():
+def GenerateShapes(self, context):
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
     cubes = rand_shape_props.make_cubes
@@ -82,11 +82,15 @@ def GenerateShapes():
     col_name = rand_shape_props.collection_name
 
     #creates plane otherwise use current selection
-    if bpy.context.active_object == None:
-        bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
+    #if bpy.context.active_object == None:
+    #   bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
     
     #get object location to add to bisect vector for 
     # objects not at world center
+    if bpy.context.active_object == None:
+        print('no object')
+        self.report({'WARNING'}, 'Select an object then generate shapes')
+        return {'FINISHED'}
     obj = bpy.context.active_object
 
     objects_to_cut = []
@@ -167,11 +171,13 @@ def GenerateShapes():
                 subd_mod.levels = sub_d_lev
 
     if use_col:# adds to new collection removes from original or if collection name exists it adds to that collection
+        print("col name = " + col_name)
         col_exists = False
         for collection in bpy.data.collections:
             if col_name == collection.name:
                 col_exists = True
-        
+
+        print("col_existes = " + str(col_exists))
         if col_exists:
             col = bpy.data.collections[col_name]
             for ob in objects_to_cut:
@@ -195,7 +201,7 @@ class Random_Shape_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         #Main Operator Here
-        GenerateShapes()
+        GenerateShapes(self, context)
         return{'FINISHED'}
 
 #ui
