@@ -111,6 +111,7 @@ def GenerateShapes():
                 tmp = (value / 2) - ((value / 2) * .1)
                 dim.append(tmp)
             
+            #select, shade smooth and enter editmode for cutting
             bpy.ops.object.select_all(action='DESELECT')
             bpy.data.objects[ob.name].select_set(True)
             bpy.ops.object.shade_smooth()
@@ -165,13 +166,13 @@ def GenerateShapes():
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
-    if use_col:
+    if use_col:# adds to new collection removes from original
         col = bpy.data.collections.new(col_name)
         bpy.context.scene.collection.children.link(col)
         for ob in objects_to_cut:
             col.objects.link(ob)
-
-    
+            old_col = bpy.data.collections[ob.users_collection[1].name]
+            old_col.objects.unlink(ob)
 
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
@@ -204,7 +205,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
-        box2 = layout.box()
+        box2 = layout.box()#solidify
         box2_col = box2.column(align=False)
         box2_col.prop(scene.rand_shape_prop, "use_solidify_bool")
         use_solid = scene.rand_shape_prop.use_solidify_bool
@@ -228,7 +229,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
                 box2_col2.enabled = False
                 box2_col3.enabled = True
         
-        box3 = layout.box()
+        box3 = layout.box()#bevel
         box3_col = box3.column(align=False)
         box3_col.prop(scene.rand_shape_prop, "use_bevel_bool")
         use_bevel = scene.rand_shape_prop.use_bevel_bool
@@ -237,7 +238,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box3_col1.prop(scene.rand_shape_prop, "bevel_width_float")
             box3_col1.prop(scene.rand_shape_prop, "bevel_seg_int")
 
-        box4 = layout.box()
+        box4 = layout.box()#subD
         box4_col = box4.column(align=False)
         box4_col.prop(scene.rand_shape_prop, "use_subd_bool")
         use_sub = scene.rand_shape_prop.use_subd_bool
@@ -245,7 +246,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box4_col1 = box4.column(align=False)
             box4_col1.prop(scene.rand_shape_prop, "sub_d_levels")
 
-        box5 = layout.box()
+        box5 = layout.box()#collections
         box5_col = box5.column(align=False)
         box5_col.prop(scene.rand_shape_prop, "use_collection_bool")
         use_col = scene.rand_shape_prop.use_collection_bool
