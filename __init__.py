@@ -45,6 +45,8 @@ class RandomShapeProps(PropertyGroup):
     bevel_seg_int : IntProperty(name = "Bevel Segments", description = "How many Bevel Segments", default = 1, min = 1)
     use_subd_bool : BoolProperty(name = "Use Subdivision Mod", description = "Should A Subdivision Surface Modifier be added", default = False)
     sub_d_levels: IntProperty(name = "SubD Levels", description = "How many Subdivision Surface Levels", default = 1, min = 1)
+    use_collection_bool : BoolProperty(name = "Add Objects to Collection", description = "Should object be added to a collection", default = False)
+    collection_name : StringProperty(name="Name", description="The name of the collection objects will be linked to", default="")
 
 def RandomNum(dim):
     return random.uniform(-dim,dim)
@@ -76,6 +78,8 @@ def GenerateShapes():
     bevel_seg = rand_shape_props.bevel_seg_int
     use_subd = rand_shape_props.use_subd_bool
     sub_d_lev = rand_shape_props.sub_d_levels
+    use_col = rand_shape_props.use_collection_bool
+    col_name = rand_shape_props.collection_name
 
     #creates plane otherwise use current selection
     if bpy.context.active_object == None:
@@ -161,6 +165,12 @@ def GenerateShapes():
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
+    if use_col:
+        col = bpy.data.collections.new(col_name)
+        bpy.context.scene.collection.children.link(col)
+        for ob in objects_to_cut:
+            col.objects.link(ob)
+
     
 
 #operator
@@ -234,6 +244,14 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         if use_sub:
             box4_col1 = box4.column(align=False)
             box4_col1.prop(scene.rand_shape_prop, "sub_d_levels")
+
+        box5 = layout.box()
+        box5_col = box5.column(align=False)
+        box5_col.prop(scene.rand_shape_prop, "use_collection_bool")
+        use_col = scene.rand_shape_prop.use_collection_bool
+        if use_col:
+            box5_col1 = box5.column(align=False)
+            box5_col1.prop(scene.rand_shape_prop, "collection_name")
 
         col2 = layout.column(align=False)
         col2.separator()
