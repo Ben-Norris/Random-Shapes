@@ -166,13 +166,26 @@ def GenerateShapes():
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
-    if use_col:# adds to new collection removes from original
-        col = bpy.data.collections.new(col_name)
-        bpy.context.scene.collection.children.link(col)
-        for ob in objects_to_cut:
-            col.objects.link(ob)
-            old_col = bpy.data.collections[ob.users_collection[1].name]
-            old_col.objects.unlink(ob)
+    if use_col:# adds to new collection removes from original or if collection name exists it adds to that collection
+        col_exists = False
+        for collection in bpy.data.collections:
+            if col_name == collection.name:
+                col_exists = True
+        
+        if col_exists:
+            col = bpy.data.collections[col_name]
+            for ob in objects_to_cut:
+                if ob.name not in col.objects:#check if object is already in this collection
+                    col.objects.link(ob)
+                    old_col = bpy.data.collections[ob.users_collection[1].name]
+                    old_col.objects.unlink(ob)
+        else:
+            col = bpy.data.collections.new(col_name)
+            bpy.context.scene.collection.children.link(col)
+            for ob in objects_to_cut:
+                col.objects.link(ob)
+                old_col = bpy.data.collections[ob.users_collection[1].name]
+                old_col.objects.unlink(ob)
 
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
