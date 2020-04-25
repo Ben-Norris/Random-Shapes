@@ -45,6 +45,8 @@ class RandomShapeProps(PropertyGroup):
     bevel_seg_int : IntProperty(name = "Bevel Segments", description = "How many Bevel Segments", default = 1, min = 1)
     use_subd_bool : BoolProperty(name = "Use Subdivision Mod", description = "Should A Subdivision Surface Modifier be added", default = False)
     sub_d_levels: IntProperty(name = "SubD Levels", description = "How many Subdivision Surface Levels", default = 1, min = 1)
+    use_collection_bool : BoolProperty(name = "Add Objects to Collection", description = "Should object be added to a collection", default = False)
+    collection_name : StringProperty(name="Name", description="The name of the collection objects will be linked to", default="")
 
 def RandomNum(dim):
     return random.uniform(-dim,dim)
@@ -59,7 +61,7 @@ def PickYAxis():
     else:
         return False
 
-def GenerateShapes():
+def GenerateShapes(self, context):
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
     cubes = rand_shape_props.make_cubes
@@ -76,13 +78,19 @@ def GenerateShapes():
     bevel_seg = rand_shape_props.bevel_seg_int
     use_subd = rand_shape_props.use_subd_bool
     sub_d_lev = rand_shape_props.sub_d_levels
+    use_col = rand_shape_props.use_collection_bool
+    col_name = rand_shape_props.collection_name
 
     #creates plane otherwise use current selection
-    if bpy.context.active_object == None:
-        bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
+    #if bpy.context.active_object == None:
+    #   bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
     
     #get object location to add to bisect vector for 
     # objects not at world center
+    if bpy.context.active_object == None:
+        print('no object')
+        self.report({'WARNING'}, 'Select an object then generate shapes')
+        return {'FINISHED'}
     obj = bpy.context.active_object
 
     objects_to_cut = []
@@ -107,6 +115,7 @@ def GenerateShapes():
                 tmp = (value / 2) - ((value / 2) * .1)
                 dim.append(tmp)
             
+            #select, shade smooth and enter editmode for cutting
             bpy.ops.object.select_all(action='DESELECT')
             bpy.data.objects[ob.name].select_set(True)
             bpy.ops.object.shade_smooth()
@@ -161,7 +170,27 @@ def GenerateShapes():
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
-    
+    if use_col:# adds to new collection removes from original or if collection name exists it adds to that collection
+        col_exists = False
+        for collection in bpy.data.collections:
+            if col_name == collection.name:
+                col_exists = True
+
+        if col_exists:
+            col = bpy.data.collections[col_name]
+            old_col = bpy.data.collections[ob.users_collection[0].name]
+            for ob in objects_to_cut:
+                if ob.name not in col.objects:#check if object is already in this collection
+                    col.objects.link(ob)
+                    old_col.objects.unlink(ob)
+        else:
+            col = bpy.data.collections.new(col_name)
+            bpy.context.scene.collection.children.link(col)
+            old_col = bpy.data.collections[ob.users_collection[0].name]
+            for ob in objects_to_cut:
+                col.objects.link(ob)
+                old_col.objects.unlink(ob)
+    objects_to_cut.clear()
 
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
@@ -171,7 +200,7 @@ class Random_Shape_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         #Main Operator Here
-        GenerateShapes()
+        GenerateShapes(self, context)
         return{'FINISHED'}
 
 #ui
@@ -194,7 +223,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
 
         layout.label(text="Finishing Settings:")
-        box2 = layout.box()
+        box2 = layout.box()#solidify
         box2_col = box2.column(align=False)
         box2_col.prop(scene.rand_shape_prop, "use_solidify_bool")
         use_solid = scene.rand_shape_prop.use_solidify_bool
@@ -218,7 +247,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
                 box2_col2.enabled = False
                 box2_col3.enabled = True
         
-        box3 = layout.box()
+        box3 = layout.box()#bevel
         box3_col = box3.column(align=False)
         box3_col.prop(scene.rand_shape_prop, "use_bevel_bool")
         use_bevel = scene.rand_shape_prop.use_bevel_bool
@@ -227,13 +256,21 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box3_col1.prop(scene.rand_shape_prop, "bevel_width_float")
             box3_col1.prop(scene.rand_shape_prop, "bevel_seg_int")
 
-        box4 = layout.box()
+        box4 = layout.box()#subD
         box4_col = box4.column(align=False)
         box4_col.prop(scene.rand_shape_prop, "use_subd_bool")
         use_sub = scene.rand_shape_prop.use_subd_bool
         if use_sub:
             box4_col1 = box4.column(align=False)
             box4_col1.prop(scene.rand_shape_prop, "sub_d_levels")
+
+        box5 = layout.box()#collections
+        box5_col = box5.column(align=False)
+        box5_col.prop(scene.rand_shape_prop, "use_collection_bool")
+        use_col = scene.rand_shape_prop.use_collection_bool
+        if use_col:
+            box5_col1 = box5.column(align=False)
+            box5_col1.prop(scene.rand_shape_prop, "collection_name")
 
         col2 = layout.column(align=False)
         col2.separator()
