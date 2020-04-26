@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Ben Norris",
     "description" : "Generate Random Shapes",
     "blender" : (2, 80, 0),
-    "version" : (1, 0, 0),
+    "version" : (1, 1, 0),
     "location" : "",
     "warning" : "",
     "category" : "Generic"
