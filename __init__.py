@@ -47,12 +47,37 @@ class RandomShapeProps(PropertyGroup):
     sub_d_levels: IntProperty(name = "SubD Levels", description = "How many Subdivision Surface Levels", default = 1, min = 1)
     use_collection_bool : BoolProperty(name = "Add Objects to Collection", description = "Should object be added to a collection", default = False)
     collection_name : StringProperty(name="Name", description="The name of the collection objects will be linked to", default="")
+    include_x : BoolProperty(name = "X", description = "Include x axis", default = True)
+    include_y : BoolProperty(name = "Y", description = "Include y axis", default = True)
+    include_z : BoolProperty(name = "Z", description = "Include z axis", default = True)
 
 def RandomNum(dim):
     return random.uniform(-dim,dim)
 
 def RandVector(object_center, dim):
     return (RandomNum(dim[0]) + object_center[0],RandomNum(dim[1]) + object_center[1],RandomNum(dim[2]) + object_center[2])
+
+def PickAxis(axes):
+    num = random.randint(0,len(axes) - 1)
+    if num == 0:#x
+        return axes[0]
+    elif num == 1:#y
+        return axes[1]
+    else:#z
+        return axes[2]
+
+def AxisSetup():
+    rand_shape_props = bpy.context.scene.rand_shape_prop
+    tmp_list = []
+    if rand_shape_props.include_x:
+        tmp_list.append("x")
+    if rand_shape_props.include_y:
+        tmp_list.append("y")
+    if rand_shape_props.include_z:
+        tmp_list.append("z")
+    if not tmp_list:#because python
+        return -1
+    return tmp_list
 
 def PickYAxis():
     num = random.randint(0,1)
@@ -80,23 +105,26 @@ def GenerateShapes(self, context):
     sub_d_lev = rand_shape_props.sub_d_levels
     use_col = rand_shape_props.use_collection_bool
     col_name = rand_shape_props.collection_name
-
-    #creates plane otherwise use current selection
-    #if bpy.context.active_object == None:
-    #   bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
     
     #get object location to add to bisect vector for 
     # objects not at world center
     if bpy.context.active_object == None:
-        print('no object')
-        self.report({'WARNING'}, 'Select an object then generate shapes')
+        self.report({'WARNING'}, 'Please select an object.')
         return {'FINISHED'}
     obj = bpy.context.active_object
 
+    edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
+    edge_mod.split_angle = 0
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
+    
     objects_to_cut = []
     new_objects = []
     objects_to_cut.append(obj)
     cutting = True
+    axes = AxisSetup()
+    if axes == -1:
+        self.report({'WARNING'}, 'Please include atleast one axis to cut on')
+        return {'FINISHED'}
 
     #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object atleast once
     for r in range(num_of_rec + 1):
@@ -125,14 +153,13 @@ def GenerateShapes(self, context):
                 for i in range(number_of_cuts):
                     bpy.ops.mesh.select_all(action='SELECT')
                     if cubes: #creates cuts only on x or y axis
-                        if PickYAxis():
-                            #y axis
-                            bpy.ops.mesh.bisect(plane_co=(RandomNum(dim[0]) + loc[0],loc[1],0), plane_no=(1, 0, 0))
-                            #bpy.ops.mesh.bisect(plane_co=(RandomNum(),0,0), plane_no=(1, 0, 0))
-                        else:
-                            #x axis
+                        axis = PickAxis(axes)#get random axis
+                        if axis == "x":
                             bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum(dim[1]) + loc[1],0), plane_no=(0, 1, 0))
-                            #bpy.ops.mesh.bisect(plane_co=(0,RandomNum(),0), plane_no=(0, 1, 0))
+                        elif axis == "y":
+                            bpy.ops.mesh.bisect(plane_co=(RandomNum(dim[0]) + loc[0],loc[1],0), plane_no=(1, 0, 0))
+                        elif axis == "z":
+                            bpy.ops.mesh.bisect(plane_co=(loc[0],loc[1],RandomNum(dim[2]) + loc[2]), plane_no=(0, 0, 1))
                     else: #creates random cuts
                         bpy.ops.mesh.bisect(plane_co=RandVector(loc,dim), plane_no=RandVector((0,0,0), dim))
                     bpy.ops.mesh.edge_split()
@@ -191,6 +218,7 @@ def GenerateShapes(self, context):
                 col.objects.link(ob)
                 old_col.objects.unlink(ob)
     objects_to_cut.clear()
+    axes.clear()
 
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
@@ -221,6 +249,12 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
+        box1_col1.label(text="Cut On:")
+        cubes = scene.rand_shape_prop.make_cubes
+        if cubes:
+            box1_col1.prop(scene.rand_shape_prop, "include_x")
+            box1_col1.prop(scene.rand_shape_prop, "include_y")
+            box1_col1.prop(scene.rand_shape_prop, "include_z")
 
         layout.label(text="Finishing Settings:")
         box2 = layout.box()#solidify
@@ -274,7 +308,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
 
         col2 = layout.column(align=False)
         col2.separator()
-        col2.operator('view3d.random_shape', text="GenerateRandomShapes!")
+        col2.operator('view3d.random_shape', text="Generate Random Shapes!")
 
 #blender addon reg, unreg
 def register():
