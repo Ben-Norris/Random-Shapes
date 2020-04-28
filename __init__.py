@@ -58,7 +58,7 @@ def RandVector(object_center, dim):
     return (RandomNum(dim[0]) + object_center[0],RandomNum(dim[1]) + object_center[1],RandomNum(dim[2]) + object_center[2])
 
 def PickAxis(axes):
-    num = random.randint(0,len(axes))
+    num = random.randint(0,len(axes) - 1)
     if num == 0:#x
         return axes[0]
     elif num == 1:#y
@@ -75,6 +75,8 @@ def AxisSetup():
         tmp_list.append("y")
     if rand_shape_props.include_z:
         tmp_list.append("z")
+    if not tmp_list:#because python
+        return -1
     return tmp_list
 
 def PickYAxis():
@@ -103,10 +105,6 @@ def GenerateShapes(self, context):
     sub_d_lev = rand_shape_props.sub_d_levels
     use_col = rand_shape_props.use_collection_bool
     col_name = rand_shape_props.collection_name
-
-    #creates plane otherwise use current selection
-    #if bpy.context.active_object == None:
-    #   bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
     
     #get object location to add to bisect vector for 
     # objects not at world center
@@ -120,6 +118,9 @@ def GenerateShapes(self, context):
     objects_to_cut.append(obj)
     cutting = True
     axes = AxisSetup()
+    if axes == -1:
+        self.report({'WARNING'}, 'Please include atleast one axis to cut on')
+        return {'FINISHED'}
 
     #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object atleast once
     for r in range(num_of_rec + 1):
@@ -213,6 +214,7 @@ def GenerateShapes(self, context):
                 col.objects.link(ob)
                 old_col.objects.unlink(ob)
     objects_to_cut.clear()
+    axes.clear()
 
 #operator
 class Random_Shape_OT_Operator(bpy.types.Operator):
@@ -243,6 +245,12 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
+        box1_col1.label(text="Cut On:")
+        cubes = scene.rand_shape_prop.make_cubes
+        if cubes:
+            box1_col1.prop(scene.rand_shape_prop, "include_x")
+            box1_col1.prop(scene.rand_shape_prop, "include_y")
+            box1_col1.prop(scene.rand_shape_prop, "include_z")
 
         layout.label(text="Finishing Settings:")
         box2 = layout.box()#solidify
