@@ -22,6 +22,9 @@ Random Shapes is in the "n" menu (hot key n when in 3D viewport) under the tab R
 * Make Only Cubes
   * When checked only rectangles are generated.
   * When unchecked random polygons are created.
+* Cut on:
+  * Must include 1 axis.
+  * Cuts are made on any included axis.
 
 <b>Finishing Settings:</b></br>
 * Use Solidify
