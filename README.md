@@ -53,4 +53,4 @@ Random Shapes is in the "n" menu (hot key n when in 3D viewport) under the tab R
 * Generate Random Shapes
   * Generates shapes with the settings above.
   
-version 1.0.0
+version 1.1.5
