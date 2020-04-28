@@ -113,6 +113,10 @@ def GenerateShapes(self, context):
         return {'FINISHED'}
     obj = bpy.context.active_object
 
+    edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
+    edge_mod.split_angle = 0
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
+    
     objects_to_cut = []
     new_objects = []
     objects_to_cut.append(obj)
