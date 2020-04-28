@@ -47,9 +47,9 @@ class RandomShapeProps(PropertyGroup):
     sub_d_levels: IntProperty(name = "SubD Levels", description = "How many Subdivision Surface Levels", default = 1, min = 1)
     use_collection_bool : BoolProperty(name = "Add Objects to Collection", description = "Should object be added to a collection", default = False)
     collection_name : StringProperty(name="Name", description="The name of the collection objects will be linked to", default="")
-    include_x : BoolProperty(name = "X", description = "Include x axis", default = False)
-    include_y : BoolProperty(name = "Y", description = "Include y axis", default = False)
-    include_z : BoolProperty(name = "Z", description = "Include z axis", default = False)
+    include_x : BoolProperty(name = "X", description = "Include x axis", default = True)
+    include_y : BoolProperty(name = "Y", description = "Include y axis", default = True)
+    include_z : BoolProperty(name = "Z", description = "Include z axis", default = True)
 
 def RandomNum(dim):
     return random.uniform(-dim,dim)
@@ -308,7 +308,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
 
         col2 = layout.column(align=False)
         col2.separator()
-        col2.operator('view3d.random_shape', text="GenerateRandomShapes!")
+        col2.operator('view3d.random_shape', text="Generate Random Shapes!")
 
 #blender addon reg, unreg
 def register():
