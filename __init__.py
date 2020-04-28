@@ -249,9 +249,9 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
         box1_col1.prop(scene.rand_shape_prop, "make_cubes")
-        box1_col1.label(text="Cut On:")
         cubes = scene.rand_shape_prop.make_cubes
         if cubes:
+            box1_col1.label(text="Cut On:")
             box1_col1.prop(scene.rand_shape_prop, "include_x")
             box1_col1.prop(scene.rand_shape_prop, "include_y")
             box1_col1.prop(scene.rand_shape_prop, "include_z")
