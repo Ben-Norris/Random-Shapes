@@ -50,6 +50,7 @@ class RandomShapeProps(PropertyGroup):
     include_x : BoolProperty(name = "X", description = "Include x axis", default = True)
     include_y : BoolProperty(name = "Y", description = "Include y axis", default = True)
     include_z : BoolProperty(name = "Z", description = "Include z axis", default = True)
+    split_faces: BoolProperty(name = "Split Faces", description = "Separate all faces in this object before cutting", default = True)
 
 def RandomNum(dim):
     return random.uniform(-dim,dim)
@@ -105,6 +106,7 @@ def GenerateShapes(self, context):
     sub_d_lev = rand_shape_props.sub_d_levels
     use_col = rand_shape_props.use_collection_bool
     col_name = rand_shape_props.collection_name
+    face_sep = rand_shape_props.split_faces
     
     #get object location to add to bisect vector for 
     # objects not at world center
@@ -112,14 +114,17 @@ def GenerateShapes(self, context):
         self.report({'WARNING'}, 'Please select an object.')
         return {'FINISHED'}
     obj = bpy.context.active_object
-
-    edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
-    edge_mod.split_angle = 0
-    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
-    
     objects_to_cut = []
+
+    if face_sep:
+        edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
+        edge_mod.split_angle = 0
+        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
+        objects_to_cut.extend(bpy.context.selected_objects)
+    else:
+        objects_to_cut.append(obj)
+    
     new_objects = []
-    objects_to_cut.append(obj)
     cutting = True
     axes = AxisSetup()
     if axes == -1:
@@ -245,6 +250,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
         layout.label(text="Cut Settings:")
         box1 = layout.box()
         box1_col1 = box1.column(align=False)
+        box1_col1.prop(scene.rand_shape_prop, "split_faces")
         box1_col1.prop(scene.rand_shape_prop, "cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
