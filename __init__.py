@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Ben Norris",
     "description" : "Generate Random Shapes",
     "blender" : (2, 80, 0),
-    "version" : (1, 1, 5),
+    "version" : (1, 1, 6),
     "location" : "",
     "warning" : "",
     "category" : "Generic"
@@ -50,14 +50,18 @@ class RandomShapeProps(PropertyGroup):
     include_x : BoolProperty(name = "X", description = "Include x axis", default = True)
     include_y : BoolProperty(name = "Y", description = "Include y axis", default = True)
     include_z : BoolProperty(name = "Z", description = "Include z axis", default = True)
+    split_faces: BoolProperty(name = "Split Faces", description = "Separate all faces in this object before cutting", default = True)
 
-def RandomNum(dim):
+#Returns a rendom number within range
+def random_num(dim):
     return random.uniform(-dim,dim)
 
-def RandVector(object_center, dim):
-    return (RandomNum(dim[0]) + object_center[0],RandomNum(dim[1]) + object_center[1],RandomNum(dim[2]) + object_center[2])
+#Returns a vector that respects the objects center and dimensions
+def random_vector(object_center, dim):
+    return (random_num(dim[0]) + object_center[0],random_num(dim[1]) + object_center[1],random_num(dim[2]) + object_center[2])
 
-def PickAxis(axes):
+#picks a random axis to cut on
+def pick_axis(axes):
     num = random.randint(0,len(axes) - 1)
     if num == 0:#x
         return axes[0]
@@ -66,7 +70,8 @@ def PickAxis(axes):
     else:#z
         return axes[2]
 
-def AxisSetup():
+#Sets up axes list to contain user selected axes
+def axis_setup():
     rand_shape_props = bpy.context.scene.rand_shape_prop
     tmp_list = []
     if rand_shape_props.include_x:
@@ -75,18 +80,12 @@ def AxisSetup():
         tmp_list.append("y")
     if rand_shape_props.include_z:
         tmp_list.append("z")
-    if not tmp_list:#because python
+    if not tmp_list:
         return -1
     return tmp_list
 
-def PickYAxis():
-    num = random.randint(0,1)
-    if num == 0:
-        return True
-    else:
-        return False
-
-def GenerateShapes(self, context):
+#Main Operator
+def generate_shapes(self, context):
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
     cubes = rand_shape_props.make_cubes
@@ -105,45 +104,54 @@ def GenerateShapes(self, context):
     sub_d_lev = rand_shape_props.sub_d_levels
     use_col = rand_shape_props.use_collection_bool
     col_name = rand_shape_props.collection_name
+    face_sep = rand_shape_props.split_faces
     
-    #get object location to add to bisect vector for 
-    # objects not at world center
+    #No object selected when cutting
     if bpy.context.active_object == None:
         self.report({'WARNING'}, 'Please select an object.')
         return {'FINISHED'}
-    obj = bpy.context.active_object
 
-    edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
-    edge_mod.split_angle = 0
-    bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
-    
+    obj = bpy.context.active_object
     objects_to_cut = []
+
+    #Splits all the faces of the selected object and adds them to cut list
+    if face_sep:
+        edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
+        edge_mod.split_angle = 0
+        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
+        objects_to_cut.extend(bpy.context.selected_objects)
+    else:
+        objects_to_cut.append(obj)
+    
     new_objects = []
-    objects_to_cut.append(obj)
     cutting = True
-    axes = AxisSetup()
+    axes = axis_setup()
+
+    #no axis selected in panel
     if axes == -1:
         self.report({'WARNING'}, 'Please include atleast one axis to cut on')
         return {'FINISHED'}
 
-    #num of recs defaults to zero meaning no recursion. add one to make sure we cut selected object atleast once
+    #Number of recursions defaults to zero meaning no recursion. Add one to make sure we cut selected object atleast once
     for r in range(num_of_rec + 1):
         for ob in objects_to_cut:
-            if r > 0: # first loop always cuts otherwise determine if recursive cuts happen
+            if r > 0: #First loop always cuts otherwise determine if recursive cuts happen
                 num = random.randint(0, 100)
                 if num in range(0, chance_of_rec):
                     cutting = True
                 else:
                     cutting = False
-            loc = ob.location
+
+            location = ob.location
+
             #get dimension - 10 percent to cut each piece
-            #used in RandomNum and RandVector to give random cut values within dimensions of current object
+            #used in random_num and rand_vector to give random cut values within dimensions of current object
             dim = []
             for value in ob.dimensions:
                 tmp = (value / 2) - ((value / 2) * .1)
                 dim.append(tmp)
             
-            #select, shade smooth and enter editmode for cutting
+            #Select, shade smooth and enter editmode for cutting
             bpy.ops.object.select_all(action='DESELECT')
             bpy.data.objects[ob.name].select_set(True)
             bpy.ops.object.shade_smooth()
@@ -152,34 +160,35 @@ def GenerateShapes(self, context):
             if cutting:
                 for i in range(number_of_cuts):
                     bpy.ops.mesh.select_all(action='SELECT')
-                    if cubes: #creates cuts only on x or y axis
-                        axis = PickAxis(axes)#get random axis
+                    if cubes: #Creates cuts only at 90 degree angles
+                        axis = pick_axis(axes)#Get a random axis to cut along
                         if axis == "x":
-                            bpy.ops.mesh.bisect(plane_co=(loc[0],RandomNum(dim[1]) + loc[1],0), plane_no=(0, 1, 0))
+                            bpy.ops.mesh.bisect(plane_co=(location[0],random_num(dim[1]) + location[1],0), plane_no=(0, 1, 0))
                         elif axis == "y":
-                            bpy.ops.mesh.bisect(plane_co=(RandomNum(dim[0]) + loc[0],loc[1],0), plane_no=(1, 0, 0))
+                            bpy.ops.mesh.bisect(plane_co=(random_num(dim[0]) + location[0],location[1],0), plane_no=(1, 0, 0))
                         elif axis == "z":
-                            bpy.ops.mesh.bisect(plane_co=(loc[0],loc[1],RandomNum(dim[2]) + loc[2]), plane_no=(0, 0, 1))
-                    else: #creates random cuts
-                        bpy.ops.mesh.bisect(plane_co=RandVector(loc,dim), plane_no=RandVector((0,0,0), dim))
+                            bpy.ops.mesh.bisect(plane_co=(location[0],location[1],random_num(dim[2]) + location[2]), plane_no=(0, 0, 1))
+                    else: #Creates random cuts at any angle
+                        bpy.ops.mesh.bisect(plane_co=random_vector(location,dim), plane_no=random_vector((0,0,0), dim))
                     bpy.ops.mesh.edge_split()
                 bpy.ops.mesh.select_all(action='DESELECT')
                 bpy.ops.mesh.select_mode(use_extend=False, use_expand=False, type='EDGE')
                 bpy.ops.mesh.separate(type='LOOSE')
                 bpy.ops.object.editmode_toggle()
                 bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='MEDIAN')
-                #add all created objects to new list
+
+                #Add all created objects to new list
                 new_objects.extend(bpy.context.selected_objects)
             else:
                 bpy.ops.object.editmode_toggle()
                 new_objects.append(ob)
         
-        #clear list used for this loop and copy in newly created objects
+        #Clear lists used for this loop and copy in newly created objects
         objects_to_cut.clear()
         objects_to_cut = new_objects.copy()
         new_objects.clear()
 
-    #finishing settings
+    #Finishing settings
     if use_bevel or use_subd or use_solidify:
         for obj in objects_to_cut:
             if use_solidify:
@@ -197,7 +206,8 @@ def GenerateShapes(self, context):
                 subd_mod = obj.modifiers.new(name="Subdivision Surface", type='SUBSURF')
                 subd_mod.levels = sub_d_lev
 
-    if use_col:# adds to new collection removes from original or if collection name exists it adds to that collection
+    #Adds to new collection and removes from the original collection. If collection name exists it adds to that collection
+    if use_col:
         col_exists = False
         for collection in bpy.data.collections:
             if col_name == collection.name:
@@ -217,6 +227,8 @@ def GenerateShapes(self, context):
             for ob in objects_to_cut:
                 col.objects.link(ob)
                 old_col.objects.unlink(ob)
+
+    #Clear lists when finished cutting
     objects_to_cut.clear()
     axes.clear()
 
@@ -228,10 +240,10 @@ class Random_Shape_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         #Main Operator Here
-        GenerateShapes(self, context)
+        generate_shapes(self, context)
         return{'FINISHED'}
 
-#ui
+#UI
 class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
     bl_idname = "Random_Shape_PT_Panel"
     bl_label = "Random Shape"
@@ -242,9 +254,11 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        #Top section of the panel
         layout.label(text="Cut Settings:")
         box1 = layout.box()
         box1_col1 = box1.column(align=False)
+        box1_col1.prop(scene.rand_shape_prop, "split_faces")
         box1_col1.prop(scene.rand_shape_prop, "cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_cuts")
         box1_col1.prop(scene.rand_shape_prop, "rec_chance", slider=True)
@@ -256,8 +270,11 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box1_col1.prop(scene.rand_shape_prop, "include_y")
             box1_col1.prop(scene.rand_shape_prop, "include_z")
 
+        #Lower section of the panel
         layout.label(text="Finishing Settings:")
-        box2 = layout.box()#solidify
+        
+        #Solidify Settings
+        box2 = layout.box()
         box2_col = box2.column(align=False)
         box2_col.prop(scene.rand_shape_prop, "use_solidify_bool")
         use_solid = scene.rand_shape_prop.use_solidify_bool
@@ -281,7 +298,8 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
                 box2_col2.enabled = False
                 box2_col3.enabled = True
         
-        box3 = layout.box()#bevel
+        #Bevel Settings
+        box3 = layout.box()
         box3_col = box3.column(align=False)
         box3_col.prop(scene.rand_shape_prop, "use_bevel_bool")
         use_bevel = scene.rand_shape_prop.use_bevel_bool
@@ -290,7 +308,8 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box3_col1.prop(scene.rand_shape_prop, "bevel_width_float")
             box3_col1.prop(scene.rand_shape_prop, "bevel_seg_int")
 
-        box4 = layout.box()#subD
+        #Subdivision Surface Settings
+        box4 = layout.box()
         box4_col = box4.column(align=False)
         box4_col.prop(scene.rand_shape_prop, "use_subd_bool")
         use_sub = scene.rand_shape_prop.use_subd_bool
@@ -298,7 +317,8 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box4_col1 = box4.column(align=False)
             box4_col1.prop(scene.rand_shape_prop, "sub_d_levels")
 
-        box5 = layout.box()#collections
+        #Collections
+        box5 = layout.box()
         box5_col = box5.column(align=False)
         box5_col.prop(scene.rand_shape_prop, "use_collection_bool")
         use_col = scene.rand_shape_prop.use_collection_bool
@@ -306,11 +326,11 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
             box5_col1 = box5.column(align=False)
             box5_col1.prop(scene.rand_shape_prop, "collection_name")
 
+        #Operator Button
         col2 = layout.column(align=False)
         col2.separator()
         col2.operator('view3d.random_shape', text="Generate Random Shapes!")
 
-#blender addon reg, unreg
 def register():
     bpy.utils.register_class(Random_Shape_OT_Operator)
     bpy.utils.register_class(RANDOMSHAPE_PT_Panel)
