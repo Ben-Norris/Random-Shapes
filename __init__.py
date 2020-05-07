@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Ben Norris",
     "description" : "Generate Random Shapes",
     "blender" : (2, 80, 0),
-    "version" : (1, 1, 5),
+    "version" : (1, 1, 6),
     "location" : "",
     "warning" : "",
     "category" : "Generic"
@@ -52,9 +52,11 @@ class RandomShapeProps(PropertyGroup):
     include_z : BoolProperty(name = "Z", description = "Include z axis", default = True)
     split_faces: BoolProperty(name = "Split Faces", description = "Separate all faces in this object before cutting", default = True)
 
+#Returns a rendom number within range
 def random_num(dim):
     return random.uniform(-dim,dim)
 
+#Returns a vector that respects the objects center and dimensions
 def random_vector(object_center, dim):
     return (random_num(dim[0]) + object_center[0],random_num(dim[1]) + object_center[1],random_num(dim[2]) + object_center[2])
 
@@ -68,6 +70,7 @@ def pick_axis(axes):
     else:#z
         return axes[2]
 
+#Sets up axes list to contain user selected axes
 def axis_setup():
     rand_shape_props = bpy.context.scene.rand_shape_prop
     tmp_list = []
@@ -81,6 +84,7 @@ def axis_setup():
         return -1
     return tmp_list
 
+#Main Operator
 def generate_shapes(self, context):
     #get props
     rand_shape_props = bpy.context.scene.rand_shape_prop
@@ -268,6 +272,7 @@ class RANDOMSHAPE_PT_Panel(bpy.types.Panel):
 
         #Lower section of the panel
         layout.label(text="Finishing Settings:")
+        
         #Solidify Settings
         box2 = layout.box()
         box2_col = box2.column(align=False)
