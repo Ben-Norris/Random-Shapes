@@ -12,6 +12,8 @@ Random Shapes is in the "n" menu (hot key n when in 3D viewport) under the tab R
 ![screenshot](images/readmeSS.JPG?raw=true)
 
 <b>Cut Settings:</b></br>
+* Split Faces
+  * Should the mesh selected have its faces separated for cutting or not.
 * Number of Cuts
   * The number of cuts that are made to the selected object.
 * Number of Recursive Cuts
