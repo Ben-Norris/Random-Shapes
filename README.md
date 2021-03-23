@@ -3,7 +3,7 @@ Generate random shapes in Blender
 
 <h1>Overview</h1>
 
-This is a Blender add-on that creates random shapes.
+This is a Blender add-on that creates random shapes. This add-on currently works with Blender 2.8 - 2.83 
 
 <h1>Installation</h1>
 Download the zip. Open Blender. Edit > Preferences > Add-ons. Click the install button at the top and navigate to the zip.
