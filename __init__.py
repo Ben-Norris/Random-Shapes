@@ -105,6 +105,9 @@ def generate_shapes(self, context):
     use_col = rand_shape_props.use_collection_bool
     col_name = rand_shape_props.collection_name
     face_sep = rand_shape_props.split_faces
+
+    #get version num for modifier apply
+    version = bpy.app.version
     
     #No object selected when cutting
     if bpy.context.active_object == None:
@@ -118,7 +121,10 @@ def generate_shapes(self, context):
     if face_sep:
         edge_mod = obj.modifiers.new(name="Edge Split", type='EDGE_SPLIT')
         edge_mod.split_angle = 0
-        bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
+        if version >= (2, 90, 0):
+            bpy.ops.object.modifier_apply()
+        else:
+            bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Edge Split")
         objects_to_cut.extend(bpy.context.selected_objects)
     else:
         objects_to_cut.append(obj)
